@@ -43,7 +43,7 @@ const W = canvas.width, H = canvas.height;
 // ── CONSTANTS ──────────────────────────────────────────────
 const IS_MOBILE     = window.matchMedia('(pointer: coarse)').matches || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const GRAVITY       = IS_MOBILE ? 0.23 : 0.20;   // giảm độ rơi để dễ giữ cao độ
-const FLAP_STRENGTH = IS_MOBILE ? -8.8 : -8.2;   // nhảy mạnh hơn, cứu tình huống sát cột tốt hơn
+const FLAP_STRENGTH = IS_MOBILE ? -7.8 : -7.3;   // giảm độ cao mỗi lần nhảy để dễ canh hơn
 const PIPE_WIDTH    = 60;
 const GAP           = IS_MOBILE ? 192 : 176;     // tăng khe cột rõ rệt để bớt dính
 const PIPE_SPEED    = IS_MOBILE ? 1.45 : 1.15;   // chậm lại nhẹ để có thêm thời gian phản xạ
