@@ -42,13 +42,13 @@ const W = canvas.width, H = canvas.height;
 
 // ── CONSTANTS ──────────────────────────────────────────────
 const IS_MOBILE     = window.matchMedia('(pointer: coarse)').matches || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const GRAVITY       = IS_MOBILE ? 0.26 : 0.22;   // mobile rơi nhanh hơn chút để game bớt ì
-const FLAP_STRENGTH = IS_MOBILE ? -8.4 : -7.9;   // mobile tăng lực nhảy để dễ cứu tình huống
+const GRAVITY       = IS_MOBILE ? 0.23 : 0.20;   // giảm độ rơi để dễ giữ cao độ
+const FLAP_STRENGTH = IS_MOBILE ? -8.8 : -8.2;   // nhảy mạnh hơn, cứu tình huống sát cột tốt hơn
 const PIPE_WIDTH    = 60;
-const GAP           = IS_MOBILE ? 172 : 160;     // mobile mở rộng khe cột để đỡ dính
-const PIPE_SPEED    = IS_MOBILE ? 1.7 : 1.3;     // mobile tăng nhịp game nhẹ
-const PIPE_INTERVAL = IS_MOBILE ? 145 : 170;     // mobile không còn chậm quá
-const FLAP_COOLDOWN = IS_MOBILE ? 85 : 110;      // tap/space phản hồi nhanh hơn
+const GAP           = IS_MOBILE ? 192 : 176;     // tăng khe cột rõ rệt để bớt dính
+const PIPE_SPEED    = IS_MOBILE ? 1.45 : 1.15;   // chậm lại nhẹ để có thêm thời gian phản xạ
+const PIPE_INTERVAL = IS_MOBILE ? 150 : 180;     // cột thưa hơn một chút
+const FLAP_COOLDOWN = IS_MOBILE ? 70 : 90;       // bấm nhảy liên tiếp dễ hơn
 
 // ── STATE ──────────────────────────────────────────────────
 let state, bird, pipes, score, best, frame;
@@ -72,7 +72,7 @@ const C = {
 
 // ── INIT ───────────────────────────────────────────────────
 function initGame() {
-  bird  = { x: 90, y: H / 2, vy: 0, r: 16, rot: 0 };
+  bird  = { x: 82, y: H / 2, vy: 0, r: 16, rot: 0 };
   pipes = [];
   score = 0;
   frame = 0;
@@ -136,9 +136,9 @@ function update() {
     }
 
     // Collision Detection (AABB với padding nhỏ)
-    const inX   = bird.x + bird.r - 6 > p.x && bird.x - bird.r + 6 < p.x + PIPE_WIDTH;
-    const inTop = bird.y - bird.r + 6 < p.topH;
-    const inBot = bird.y + bird.r - 6 > p.topH + GAP;
+    const inX   = bird.x + bird.r - 8 > p.x && bird.x - bird.r + 8 < p.x + PIPE_WIDTH;
+    const inTop = bird.y - bird.r + 8 < p.topH;
+    const inBot = bird.y + bird.r - 8 > p.topH + GAP;
     if (inX && (inTop || inBot)) { state = 'dead'; return; }
   }
 
