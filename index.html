@@ -124,6 +124,99 @@ const SKINS = [
   { id: 'neon', name: 'Neon', color: '#a5ff3b', wing: '#78d81c', beak: '#ffa94d', price: 60, unlockBest: 20 }
 ];
 
+const THEMES = [
+  {
+    minScore: 0,
+    name: 'Day Sky',
+    skyTop: '#70c5ce',
+    skyBottom: '#9be5ef',
+    ground: '#ded895',
+    grass: '#5db042',
+    groundMark: '#c8b060',
+    pipe: '#5cb85c',
+    pipeDk: '#3a7a3a',
+    overlay: 'rgba(0,0,0,0.46)',
+    text: '#ffffff',
+    sub: '#dddddd',
+    deco: 'clouds'
+  },
+  {
+    minScore: 15,
+    name: 'Sunset',
+    skyTop: '#ff8f70',
+    skyBottom: '#ffd08a',
+    ground: '#d9a66a',
+    grass: '#8f5f2f',
+    groundMark: '#b97b45',
+    pipe: '#f28b5b',
+    pipeDk: '#b85d32',
+    overlay: 'rgba(35,12,18,0.42)',
+    text: '#fff8ef',
+    sub: '#ffe3c3',
+    deco: 'sun'
+  },
+  {
+    minScore: 20,
+    name: 'Night City',
+    skyTop: '#1a2347',
+    skyBottom: '#293d75',
+    ground: '#1d2440',
+    grass: '#4f6aa8',
+    groundMark: '#7086c9',
+    pipe: '#6a7cff',
+    pipeDk: '#4453b9',
+    overlay: 'rgba(0,0,0,0.5)',
+    text: '#eef2ff',
+    sub: '#c8d2ff',
+    deco: 'stars'
+  },
+  {
+    minScore: 35,
+    name: 'Galaxy',
+    skyTop: '#29104a',
+    skyBottom: '#6b2fa3',
+    ground: '#34184f',
+    grass: '#8c56cf',
+    groundMark: '#b38bf0',
+    pipe: '#a25cff',
+    pipeDk: '#6e33be',
+    overlay: 'rgba(9,3,18,0.52)',
+    text: '#fff4ff',
+    sub: '#f1d3ff',
+    deco: 'nebula'
+  },
+  {
+    minScore: 40,
+    name: 'Neon Grid',
+    skyTop: '#0e1424',
+    skyBottom: '#123e62',
+    ground: '#0b1020',
+    grass: '#17c3b2',
+    groundMark: '#5ffbf1',
+    pipe: '#16f4d0',
+    pipeDk: '#0b8f87',
+    overlay: 'rgba(0,0,0,0.5)',
+    text: '#e8fffb',
+    sub: '#baf6ef',
+    deco: 'grid'
+  },
+  {
+    minScore: 50,
+    name: 'Aurora',
+    skyTop: '#04263a',
+    skyBottom: '#0f7a73',
+    ground: '#0d2f3b',
+    grass: '#4ad7a3',
+    groundMark: '#82f2c8',
+    pipe: '#79f2b8',
+    pipeDk: '#2caa83',
+    overlay: 'rgba(1,15,16,0.46)',
+    text: '#ecfff7',
+    sub: '#bff7e5',
+    deco: 'aurora'
+  }
+];
+
 // ── STATE ──────────────────────────────────────────────────
 let state, bird, pipes, score, best, frame, coins;
 let lastFlapTime = 0;
@@ -138,6 +231,14 @@ function getSkinById(id) {
 
 function getCurrentSkin() {
   return getSkinById(selectedSkinId);
+}
+
+function getThemeForScore(currentScore) {
+  let theme = THEMES[0];
+  for (const candidate of THEMES) {
+    if (currentScore >= candidate.minScore) theme = candidate;
+  }
+  return theme;
 }
 
 function saveProgress() {
@@ -241,17 +342,9 @@ function tryUnlockAndSelectSkin(skinId) {
 
 // ── COLORS ─────────────────────────────────────────────────
 const C = {
-  sky:    '#70c5ce',
-  ground: '#ded895',
-  grass:  '#5db042',
   bird:   '#ffd700',
   beak:   '#e8963a',
-  pipe:   '#5cb85c',
-  pipeDk: '#3a7a3a',
   white:  '#ffffff',
-  overlay:'rgba(0,0,0,0.48)',
-  text:   '#ffffff',
-  sub:    '#dddddd',
 };
 
 // ── INIT ───────────────────────────────────────────────────
@@ -384,74 +477,137 @@ function drawBird() {
 // ── DRAW: PIPE ─────────────────────────────────────────────
 function drawPipe(p) {
   const capH = 18, capW = PIPE_WIDTH + 10, capX = p.x - 5;
+  const theme = getThemeForScore(score);
 
   // Thân pipe trên
-  ctx.fillStyle = C.pipe;
+  ctx.fillStyle = theme.pipe;
   ctx.fillRect(p.x, 0, PIPE_WIDTH, p.topH - capH);
-  ctx.fillStyle = C.pipeDk;
+  ctx.fillStyle = theme.pipeDk;
   ctx.fillRect(p.x, 0, 6, p.topH - capH);
   ctx.fillRect(p.x + PIPE_WIDTH - 6, 0, 6, p.topH - capH);
 
   // Cap pipe trên
-  ctx.fillStyle = C.pipe;
+  ctx.fillStyle = theme.pipe;
   ctx.beginPath(); ctx.rect(capX, p.topH - capH, capW, capH); ctx.fill();
-  ctx.fillStyle = C.pipeDk;
+  ctx.fillStyle = theme.pipeDk;
   ctx.beginPath(); ctx.rect(capX, p.topH - capH, 8, capH); ctx.fill();
 
   // Thân pipe dưới
   const botY = p.topH + GAP;
-  ctx.fillStyle = C.pipe;
+  ctx.fillStyle = theme.pipe;
   ctx.fillRect(p.x, botY + capH, PIPE_WIDTH, H - botY - capH - 60);
-  ctx.fillStyle = C.pipeDk;
+  ctx.fillStyle = theme.pipeDk;
   ctx.fillRect(p.x, botY + capH, 6, H - botY - capH - 60);
   ctx.fillRect(p.x + PIPE_WIDTH - 6, botY + capH, 6, H - botY - capH - 60);
 
   // Cap pipe dưới
-  ctx.fillStyle = C.pipe;
+  ctx.fillStyle = theme.pipe;
   ctx.beginPath(); ctx.rect(capX, botY, capW, capH); ctx.fill();
-  ctx.fillStyle = C.pipeDk;
+  ctx.fillStyle = theme.pipeDk;
   ctx.beginPath(); ctx.rect(capX, botY, 8, capH); ctx.fill();
 }
 
 // ── DRAW: GROUND ───────────────────────────────────────────
 function drawGround() {
-  ctx.fillStyle = C.ground;
+  const theme = getThemeForScore(score);
+  ctx.fillStyle = theme.ground;
   ctx.fillRect(0, H - 60, W, 60);
-  ctx.fillStyle = C.grass;
+  ctx.fillStyle = theme.grass;
   ctx.fillRect(0, H - 60, W, 12);
-  ctx.fillStyle = '#c8b060';
+  ctx.fillStyle = theme.groundMark;
   for (let i = 0; i < W; i += 24) {
     ctx.fillRect(i + ((frame * 2) % 24) - 24, H - 62, 10, 5);
   }
 }
 
+function drawBackground(theme) {
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, theme.skyTop);
+  gradient.addColorStop(1, theme.skyBottom);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  if (theme.deco === 'clouds') {
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.beginPath(); ctx.ellipse(70, 90, 32, 16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(290, 70, 42, 20, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (theme.deco === 'sun') {
+    ctx.fillStyle = 'rgba(255,241,166,0.8)';
+    ctx.beginPath(); ctx.arc(W - 60, 65, 20, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (theme.deco === 'stars') {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    for (let i = 0; i < 12; i++) {
+      const x = (i * 31 + frame * 0.2) % W;
+      const y = (i * 23) % 140 + 20;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+
+  if (theme.deco === 'nebula') {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.ellipse(95, 88, 72, 24, -0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(285, 128, 92, 30, 0.12, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (theme.deco === 'grid') {
+    ctx.strokeStyle = 'rgba(95,251,241,0.14)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H - 60);
+      ctx.stroke();
+    }
+    for (let y = 20; y < H - 60; y += 28) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+
+  if (theme.deco === 'aurora') {
+    const glow = ctx.createLinearGradient(0, 0, W, 0);
+    glow.addColorStop(0, 'rgba(74,215,163,0.0)');
+    glow.addColorStop(0.5, 'rgba(74,215,163,0.16)');
+    glow.addColorStop(1, 'rgba(74,215,163,0.0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H - 60);
+  }
+}
+
 // ── DRAW: OVERLAY ──────────────────────────────────────────
 function drawOverlay(title, sub) {
-  ctx.fillStyle = C.overlay;
+  const theme = getThemeForScore(score);
+  ctx.fillStyle = theme.overlay;
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
-  ctx.fillStyle = C.text;
+  ctx.fillStyle = theme.text;
   ctx.font = '500 26px Segoe UI';
   ctx.fillText(title, W / 2, H / 2 - 30);
   ctx.font = '15px Segoe UI';
-  ctx.fillStyle = C.sub;
+  ctx.fillStyle = theme.sub;
   ctx.fillText(sub, W / 2, H / 2 + 10);
 }
 
 // ── DRAW MAIN ──────────────────────────────────────────────
 function draw() {
-  ctx.fillStyle = C.sky;
-  ctx.fillRect(0, 0, W, H);
+  const theme = getThemeForScore(score);
+  drawBackground(theme);
 
   pipes.forEach(drawPipe);
   drawGround();
   drawBird();
 
   if (state === 'idle') {
-    drawOverlay('Flappy Bird', 'Click hoặc nhấn Space để bắt đầu');
+    drawOverlay(`Flappy Bird - ${theme.name}`, 'Click hoặc nhấn Space để bắt đầu');
   }
   if (state === 'dead') {
-    drawOverlay('Game Over!  Score: ' + score, 'Click / Space để chơi lại');
+    drawOverlay(`Game Over!  Score: ${score}`, 'Click / Space để chơi lại');
   }
 }
 
