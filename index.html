@@ -17,11 +17,65 @@
     user-select: none;
   }
   h1 { color: #ffd700; font-size: 1.4rem; margin-bottom: 12px; letter-spacing: 2px; }
-  #ui { display: flex; gap: 20px; margin-bottom: 10px; }
+  #ui { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
   .stat { background: #16213e; border-radius: 8px; padding: 8px 20px; text-align: center; border: 1px solid #0f3460; }
   .stat-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
   .stat-val { font-size: 22px; font-weight: 700; color: #ffd700; }
   canvas { border-radius: 10px; border: 2px solid #0f3460; display: block; cursor: pointer; touch-action: manipulation; }
+  #shopBtn {
+    margin-top: 10px;
+    background: #1e3a8a;
+    color: #fff;
+    border: 1px solid #3257c2;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #shopBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #shopPanel {
+    margin-top: 12px;
+    width: min(96vw, 420px);
+    background: #0f1b33;
+    border: 1px solid #264b8f;
+    border-radius: 10px;
+    padding: 12px;
+    color: #d6e1ff;
+  }
+  #shopPanel.hidden { display: none; }
+  .shop-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #ffd700; }
+  .skin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #1b3564;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: #122446;
+  }
+  .skin-left { display: flex; align-items: center; gap: 8px; }
+  .skin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+  .skin-meta { font-size: 12px; color: #9fb3df; }
+  .skin-action {
+    border: 1px solid #3b6ad2;
+    background: #1c4ec0;
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 82px;
+  }
+  .skin-action[disabled] { opacity: 0.55; cursor: not-allowed; }
   #hint { color: #888; font-size: 13px; margin-top: 10px; }
 </style>
 </head>
@@ -31,13 +85,25 @@
 <div id="ui">
   <div class="stat"><div class="stat-label">Score</div><div class="stat-val" id="scoreEl">0</div></div>
   <div class="stat"><div class="stat-label">Best</div><div class="stat-val" id="bestEl">0</div></div>
+  <div class="stat"><div class="stat-label">Coins</div><div class="stat-val" id="coinEl">0</div></div>
 </div>
 <canvas id="gameCanvas" width="400" height="500"></canvas>
+<button id="shopBtn" type="button">Skin Shop</button>
 <div id="hint">Click / Space / Tap để flap</div>
+<div id="shopPanel" class="hidden">
+  <div class="shop-title">Skin Shop (mo khoa theo Best)</div>
+  <div id="shopList"></div>
+</div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreEl');
+const bestEl = document.getElementById('bestEl');
+const coinEl = document.getElementById('coinEl');
+const shopBtn = document.getElementById('shopBtn');
+const shopPanel = document.getElementById('shopPanel');
+const shopList = document.getElementById('shopList');
 const W = canvas.width, H = canvas.height;
 
 // ── CONSTANTS ──────────────────────────────────────────────
@@ -49,11 +115,129 @@ const GAP           = IS_MOBILE ? 192 : 176;     // tăng khe cột rõ rệt đ
 const PIPE_SPEED    = IS_MOBILE ? 1.45 : 1.15;   // chậm lại nhẹ để có thêm thời gian phản xạ
 const PIPE_INTERVAL = IS_MOBILE ? 150 : 180;     // cột thưa hơn một chút
 const FLAP_COOLDOWN = IS_MOBILE ? 70 : 90;       // bấm nhảy liên tiếp dễ hơn
+const SAVE_KEY = 'flappy_progress_v1';
+
+const SKINS = [
+  { id: 'classic', name: 'Classic', color: '#ffd700', wing: '#e8b800', beak: '#e8963a', price: 0, unlockBest: 0 },
+  { id: 'mint', name: 'Mint', color: '#7cf5d0', wing: '#58dcb4', beak: '#f2a86d', price: 20, unlockBest: 5 },
+  { id: 'rose', name: 'Rose', color: '#ff8fab', wing: '#f86b95', beak: '#ffbf69', price: 35, unlockBest: 10 },
+  { id: 'neon', name: 'Neon', color: '#a5ff3b', wing: '#78d81c', beak: '#ffa94d', price: 60, unlockBest: 20 }
+];
 
 // ── STATE ──────────────────────────────────────────────────
-let state, bird, pipes, score, best, frame;
+let state, bird, pipes, score, best, frame, coins;
 let lastFlapTime = 0;
 best = 0;
+coins = 0;
+let purchasedSkinIds = new Set(['classic']);
+let selectedSkinId = 'classic';
+
+function getSkinById(id) {
+  return SKINS.find(s => s.id === id) || SKINS[0];
+}
+
+function getCurrentSkin() {
+  return getSkinById(selectedSkinId);
+}
+
+function saveProgress() {
+  const payload = {
+    best,
+    coins,
+    selectedSkinId,
+    purchasedSkinIds: [...purchasedSkinIds]
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+}
+
+function loadProgress() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    best = Number.isFinite(parsed.best) ? parsed.best : 0;
+    coins = Number.isFinite(parsed.coins) ? parsed.coins : 0;
+    const savedPurchased = Array.isArray(parsed.purchasedSkinIds) ? parsed.purchasedSkinIds : ['classic'];
+    purchasedSkinIds = new Set(['classic', ...savedPurchased]);
+    selectedSkinId = typeof parsed.selectedSkinId === 'string' ? parsed.selectedSkinId : 'classic';
+    if (!purchasedSkinIds.has(selectedSkinId)) selectedSkinId = 'classic';
+  } catch {
+    best = 0;
+    coins = 0;
+    purchasedSkinIds = new Set(['classic']);
+    selectedSkinId = 'classic';
+  }
+}
+
+function updateStatsUi() {
+  scoreEl.textContent = String(score);
+  bestEl.textContent = String(best);
+  coinEl.textContent = String(coins);
+}
+
+function isSkinUnlockedByBest(skin) {
+  return best >= skin.unlockBest;
+}
+
+function refreshShopUi() {
+  const rows = SKINS.map(skin => {
+    const isOwned = purchasedSkinIds.has(skin.id);
+    const isActive = selectedSkinId === skin.id;
+    const unlockedByBest = isSkinUnlockedByBest(skin);
+    let actionLabel = 'Khoa';
+    let disabledAttr = ' disabled';
+
+    if (isOwned) {
+      actionLabel = isActive ? 'Dang dung' : 'Chon';
+      disabledAttr = isActive ? ' disabled' : '';
+    } else if (unlockedByBest) {
+      actionLabel = `Mua ${skin.price}`;
+      disabledAttr = coins >= skin.price ? '' : ' disabled';
+    }
+
+    const meta = isOwned
+      ? 'Da so huu'
+      : unlockedByBest
+        ? `Can ${skin.price} coin`
+        : `Mo khoa khi Best ${skin.unlockBest}`;
+
+    return `
+      <div class="skin-item">
+        <div class="skin-left">
+          <span class="skin-dot" style="background:${skin.color}"></span>
+          <div>
+            <div>${skin.name}</div>
+            <div class="skin-meta">${meta}</div>
+          </div>
+        </div>
+        <button class="skin-action" data-skin-id="${skin.id}"${disabledAttr}>${actionLabel}</button>
+      </div>
+    `;
+  }).join('');
+
+  shopList.innerHTML = rows;
+}
+
+function tryUnlockAndSelectSkin(skinId) {
+  const skin = getSkinById(skinId);
+  const isOwned = purchasedSkinIds.has(skin.id);
+  const unlockedByBest = isSkinUnlockedByBest(skin);
+
+  if (isOwned) {
+    selectedSkinId = skin.id;
+    saveProgress();
+    refreshShopUi();
+    return;
+  }
+
+  if (!unlockedByBest || coins < skin.price) return;
+  coins -= skin.price;
+  purchasedSkinIds.add(skin.id);
+  selectedSkinId = skin.id;
+  updateStatsUi();
+  saveProgress();
+  refreshShopUi();
+}
 
 // ── COLORS ─────────────────────────────────────────────────
 const C = {
@@ -77,7 +261,7 @@ function initGame() {
   score = 0;
   frame = 0;
   state = 'idle';
-  document.getElementById('scoreEl').textContent = '0';
+  updateStatsUi();
 }
 
 // ── SPAWN PIPE ─────────────────────────────────────────────
@@ -128,11 +312,13 @@ function update() {
     if (!p.passed && p.x + PIPE_WIDTH < bird.x) {
       p.passed = true;
       score++;
-      document.getElementById('scoreEl').textContent = score;
+      coins += 1;
       if (score > best) {
         best = score;
-        document.getElementById('bestEl').textContent = best;
       }
+      updateStatsUi();
+      saveProgress();
+      refreshShopUi();
     }
 
     // Collision Detection (AABB với padding nhỏ)
@@ -162,9 +348,10 @@ function drawBird() {
   ctx.rotate(bird.rot * Math.PI / 180);
 
   // Thân
+  const skin = getCurrentSkin();
   ctx.beginPath();
   ctx.ellipse(0, 0, bird.r, bird.r - 3, 0, 0, Math.PI * 2);
-  ctx.fillStyle = C.bird; ctx.fill();
+  ctx.fillStyle = skin.color; ctx.fill();
   ctx.strokeStyle = '#c8a000'; ctx.lineWidth = 1; ctx.stroke();
 
   // Mắt trắng
@@ -183,13 +370,13 @@ function drawBird() {
   ctx.lineTo(bird.r + 8, -3);
   ctx.lineTo(bird.r + 8,  3);
   ctx.closePath();
-  ctx.fillStyle = C.beak; ctx.fill();
+  ctx.fillStyle = skin.beak; ctx.fill();
 
   // Cánh (animate)
   const wingY = state === 'playing' ? Math.sin(frame * 0.3) * 4 : 2;
   ctx.beginPath();
   ctx.ellipse(-4, wingY, 10, 5, -0.3, 0, Math.PI * 2);
-  ctx.fillStyle = '#e8b800'; ctx.fill();
+  ctx.fillStyle = skin.wing; ctx.fill();
 
   ctx.restore();
 }
@@ -281,7 +468,22 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); flap(); }
 });
 
+shopBtn.addEventListener('click', () => {
+  if (state === 'playing') return;
+  shopPanel.classList.toggle('hidden');
+});
+
+shopList.addEventListener('click', e => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const skinId = target.dataset.skinId;
+  if (!skinId) return;
+  tryUnlockAndSelectSkin(skinId);
+});
+
 // ── START ──────────────────────────────────────────────────
+loadProgress();
+refreshShopUi();
 initGame();
 loop();
 </script>
